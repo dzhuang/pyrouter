@@ -1,59 +1,42 @@
-
 import requests
 import json
 from datetime import datetime
-from urllib.parse import quote, unquote
+
+from urllib.request import urlopen
+
+from utils import unquote_dict, quote_dict
+from encrypt import encrypt, DEFAULT_PUBLIC_KEY
+from exceptions import RouterNotCompatible, ValidationError
 
 
-class RouterNotCompatible(Exception):
-    pass
-
-
-class ValidationError(Exception):
-    pass
-
-
-def unquote_dict(d):
-    if not isinstance(d, dict):
-        return d
-    for k, v in d.items():
-        if isinstance(v, dict):
-            v = unquote_dict(v)
-        elif isinstance(v, str):
-            v = unquote(v)
-        elif isinstance(v, list):
-            for i, _v in enumerate(v):
-                v[i] = unquote_dict(_v)
-        d[k] = v
-    return d
-
-
-def quote_dict(d):
-    if not isinstance(d, dict):
-        return d
-    for k, v in d.items():
-        if isinstance(v, dict):
-            v = quote_dict(v)
-        elif isinstance(v, str):
-            v = quote(v)
-        elif isinstance(v, list):
-            for i, _v in enumerate(v):
-                v[i] = quote_dict(_v)
-        else:
-            # for example, when the value is an int
-            v = quote(str(v))
-        d[k] = v
-    return d
-
-
-class TpLinkClient(object):
+class RouterClient(object):
     headers = {'Content-Type': 'application/json; charset=UTF-8'}
 
-    def __init__(self, url, password):
+    def __init__(self, url, password, timeout=5):
+        self.validate_url(url)
         self.url = url
         self._password = password
 
         self._stok = None
+        self._timeout = timeout
+
+    @classmethod
+    def validate_url(cls, url, timeout=5):
+        urlopen(url, timeout=timeout)
+
+    @classmethod
+    def test_compatible(cls, url, timeout=5):
+        payload = {
+            "method": "do",
+            "login": {"password": ""}
+        }
+        response = requests.post(url, json=payload, headers=cls.headers,
+                                 timeout=timeout)
+        try:
+            result = response.json()
+            # todo: check public key
+        except Exception as e:
+            raise RouterNotCompatible()
 
     @property
     def stok(self):
@@ -62,53 +45,27 @@ class TpLinkClient(object):
         self.authenticate()
         return self._stok
 
-    def encrypt_password(self):
-        input1 = "RDpbLfCPsJZ7fiv"
-        input3 = ("yLwVl0zKqws7LgKPRQ84Mdt708T1qQ3Ha7xv3H7NyU84p21BriUWBU43"
-                  "odz3iP4rBL3cD02KZciXTysVXiV8ngg6vL48rPJyAUw0HurW20xqxv9a"
-                  "Yb4M9wK1Ae0wlro510qXeU07kV57fQMc8L6aLgMLwygtc0F10a0Dg70T"
-                  "OoouyFhdysuRMO51yY5ZlOZZLEal1h0t9YQW0Ko7oBwmCAHoic4HYbUy"
-                  "VeU3sfQ1xtXcPcf1aT303wAQhv66qzW")
-        len1 = len(input1)
-        len2 = len(self._password)
-        len3 = len(input3)
-        output = ''
-        if len1 > len2:
-            length = len1
-        else:
-            length = len2
-        index = 0
-        while index < length:
-            cl = 187
-            cr = 187
-            if index >= len1:
-                cr = ord(self._password[index])
-            elif index >= len2:
-                cl = ord(input1[index])
-            else:
-                cl = ord(input1[index])
-                cr = ord(self._password[index])
-            index += 1
-            output += chr(ord(input3[cl ^ cr]) % len3)
-        return output
-
     @property
     def _post_url(self):
         return f'{self.url}/stok={self.stok}/ds'
 
     def _post(self, payload):
         response = requests.post(
-            self._post_url, json=quote_dict(payload), headers=self.headers)
+            self._post_url, json=quote_dict(payload), headers=self.headers,
+            timeout=self._timeout)
         if response.status_code == 200:
             result = response.json()
             return unquote_dict(result)
         return response
 
     def authenticate(self):
-        encrypted_password = self.encrypt_password()
-        headers = {'Content-Type': 'application/json; charset=UTF-8'}
-        payload = {"method": "do", "login": {"password": encrypted_password}}
-        response = requests.post(self.url, json=payload, headers=headers)
+        payload = {
+            "method": "do",
+            "login": {"password": encrypt(self._password)}
+        }
+        response = requests.post(
+            self.url, json=payload, headers=self.headers,
+            timeout=self._timeout)
         try:
             self._stok = response.json()['stok']
         except KeyError:
@@ -116,7 +73,7 @@ class TpLinkClient(object):
                 f"Encrypt Error: {json.dumps(response.json())}"
             )
 
-    def get_all_host_info(self):
+    def get_all_hosts_info(self):
         payload = {"hosts_info": {"table": "host_info"}, "method": "get"}
         return self._post(payload)
 
@@ -124,7 +81,7 @@ class TpLinkClient(object):
         payload = {"system": {"reboot": None}, "method": "do"}
         return self._post(payload)
 
-    def get_blocked_devices(self):
+    def get_blocked_hosts(self):
         payload = {"hosts_info": {"table": "blocked_host"}, "method": "get"}
         return self._post(payload)
 
@@ -145,6 +102,9 @@ class TpLinkClient(object):
         :param is_blocked:
         :return:
         """
+
+        # todo: this will force is_blocked to 0,
+        # maybe we should fetch the exist rule?
         down_limit = str(down_limit)
         up_limit = str(up_limit)
         is_blocked = str(is_blocked)
@@ -208,9 +168,44 @@ class TpLinkClient(object):
         payload = {"hosts_info": {"table": "limit_time"}, "method": "delete"}
         return self._post(payload)
 
+    def add_forbid_domain(self, forbid_domain_name, domain):
+        payload = {
+            "hosts_info": {"table": "forbid_domain", "name": forbid_domain_name,
+                           "para": {"domain": domain}}, "method": "add"}
+        return self._post(payload)
+
+    def delete_forbid_domain(self, forbid_domain_name):
+        payload = {"hosts_info": {"name": [forbid_domain_name]}, "method": "delete"}
+        return self._post(payload)
+
+    def delete_all_forbid_domains(self):
+        payload = {"hosts_info": {"table": "forbid_domain"}, "method": "delete"}
+        return self._post(payload)
+
+    def set_host_info(self, mac, host_name, **kwargs):
+        """
+        Apply rules to the host
+        :param mac:
+        :param host_name:
+        :param kwargs:
+        :return:
+        """
+        # todo: this will force is_blocked, down_limit, up_limit to 0
+        # maybe we should fetch the exist rule?
+        info_dict = {"mac": mac, "name": host_name}
+        info_dict.setdefault("is_blocked", "0")
+        info_dict.setdefault("down_limit", "0")
+        info_dict.setdefault("up_limit", "0")
+        info_dict.setdefault("limit_time", "")
+        info_dict.update(**kwargs)
+
+        payload = {
+            "hosts_info": {"set_host_info": info_dict}, "method": "do"}
+        return self._post(payload)
+
 
 if __name__ == '__main__':
-    client = TpLinkClient(url="http://192.168.0.1", password="xxx")
+    client = RouterClient(url="http://192.168.0.1", password="xxx")
     # print(client.stok)
     # result = client.get_all_host_info()
     # result = client.get_blocked_devices()

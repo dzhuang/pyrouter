@@ -85,21 +85,32 @@ class RouterClient(object):
         payload = {"hosts_info": {"table": "blocked_host"}, "method": "get"}
         return self._post(payload)
 
-    def set_flux_limit(self, mac, name, down_limit, up_limit, is_blocked=0):
+    def set_block_flag(self, mac, is_blocked: bool):
+        assert isinstance(is_blocked, bool)
+        is_blocked = "1" if is_blocked else "0"
+        payload = {
+            "hosts_info": {
+                "set_block_flag": {
+                    "mac": mac,
+                    "is_blocked": is_blocked
+                }},
+            "method": "do"}
+        return self._post(payload)
+
+    # todo: is_block is not set here
+    def set_flux_limit(self, mac, down_limit, up_limit):
         """
         for example:
             data = {
             "mac": "22-28-6D-95-FD-C9",
-            "is_blocked": "0",
-            "name": "myiPad",
+            # "is_blocked": "0",
+            # "name": "myiPad",
             "down_limit": "0",
             "up_limit": "0"}
 
         :param mac:
-        :param name:
         :param down_limit: 0 means no limit
         :param up_limit: 0 means no limit
-        :param is_blocked:
         :return:
         """
 
@@ -107,14 +118,10 @@ class RouterClient(object):
         # maybe we should fetch the exist rule?
         down_limit = str(down_limit)
         up_limit = str(up_limit)
-        is_blocked = str(is_blocked)
-        assert is_blocked in ["0", "1"]
         payload = {
             "hosts_info": {
                 "set_flux_limit": {
                     "mac": mac,
-                    "is_blocked": is_blocked,
-                    "name": name,
                     "down_limit": down_limit,
                     "up_limit": up_limit}},
             "method": "do"}
@@ -182,21 +189,25 @@ class RouterClient(object):
         payload = {"hosts_info": {"table": "forbid_domain"}, "method": "delete"}
         return self._post(payload)
 
-    def set_host_info(self, mac, host_name, **kwargs):
+    def set_host_info(self, mac, **kwargs):
         """
         Apply rules to the host
         :param mac:
-        :param host_name:
-        :param kwargs:
+        :param kwargs: allowed kwargs: "is_blocked", "down_limit", "up_limit",
+         "limit_time", "name".
         :return:
         """
-        # todo: this will force is_blocked, down_limit, up_limit to 0
-        # maybe we should fetch the exist rule?
-        info_dict = {"mac": mac, "name": host_name}
-        info_dict.setdefault("is_blocked", "0")
-        info_dict.setdefault("down_limit", "0")
-        info_dict.setdefault("up_limit", "0")
-        info_dict.setdefault("limit_time", "")
+        # if not specified in kwargs, will used the existing rules
+
+        if not kwargs:
+            return
+
+        for k, v in kwargs.items():
+            if k not in [
+                    "is_blocked", "down_limit", "up_limit", "limit_time", "name"]:
+                raise ValidationError("Unknown key {k}")
+
+        info_dict = {"mac": mac}
         info_dict.update(**kwargs)
 
         payload = {

@@ -15,7 +15,7 @@ install_requires = [
 ]
 
 setup(
-    name='router_api',
+    name='pyrouter',
     version=router_api.__version__,
     description="TPlink api, currently only support TL-R470GP model",
     long_description_content_type="text/x-rst",
@@ -41,7 +41,7 @@ setup(
     author_email='dzhuang.scut@gmail.com',
     url='https://github.com/dzhuang/pyrouter/',
     license='MIT',
-    packages=find_packages("router_api"),
+    packages=find_packages("pyrouter"),
     include_package_data=True,
     zip_safe=True,
     install_requires=install_requires,

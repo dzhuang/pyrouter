@@ -1,4 +1,4 @@
-from router_client import RouterClient
+from .router_client import RouterClient
 import argparse
 
 

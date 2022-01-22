@@ -2,7 +2,7 @@ import os
 
 from setuptools import find_packages, setup
 
-import router_api
+from src import pyrouter
 
 
 def read(fname):
@@ -16,7 +16,7 @@ install_requires = [
 
 setup(
     name='pyrouter',
-    version=router_api.__version__,
+    version=pyrouter.__version__,
     description="TPlink api, currently only support TL-R470GP model",
     long_description_content_type="text/x-rst",
     long_description=read('README.md'),
@@ -41,11 +41,13 @@ setup(
     author_email='dzhuang.scut@gmail.com',
     url='https://github.com/dzhuang/pyrouter/',
     license='MIT',
-    packages=find_packages("pyrouter"),
+    packages=find_packages("src"),
     include_package_data=True,
     zip_safe=True,
     install_requires=install_requires,
-    entry_points="""
-        # -*- Entry points: -*-
-    """,
+    package_dir={"": "src"},
+    entry_points={'console_scripts': [
+        'pyrouter=pyrouter.router:main',
+    ],
+    },
 )

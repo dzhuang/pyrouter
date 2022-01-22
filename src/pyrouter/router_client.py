@@ -4,9 +4,9 @@ from datetime import datetime
 
 from urllib.request import urlopen
 
-from utils import unquote_dict, quote_dict
-from encrypt import encrypt
-from exceptions import RouterNotCompatible, ValidationError
+from .utils import unquote_dict, quote_dict
+from .encrypt import encrypt
+from .exceptions import RouterNotCompatible, ValidationError
 
 
 class RouterClient(object):

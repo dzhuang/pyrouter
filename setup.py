@@ -22,7 +22,7 @@ setup(
     long_description=read('README.md'),
     classifiers=[
         # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
-        'Development Status :: 1 - Beta',
+        'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
@@ -41,7 +41,7 @@ setup(
     author_email='dzhuang.scut@gmail.com',
     url='https://github.com/dzhuang/pyrouter/',
     license='MIT',
-    packages=find_packages(exclude=['tests', 'demo']),
+    packages=find_packages("router_api"),
     include_package_data=True,
     zip_safe=True,
     install_requires=install_requires,

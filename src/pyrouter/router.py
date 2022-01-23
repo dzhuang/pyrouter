@@ -8,7 +8,7 @@ def apply_action(url, password, action, **kwargs):
     return func(**kwargs)
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--url", required=True)
     parser.add_argument("-p", "--password", required=True)
@@ -16,9 +16,16 @@ if __name__ == "__main__":
     get_all_hosts_info_parser = subparsers.add_parser("get_all_hosts_info")
     get_blocked_hosts_parser = subparsers.add_parser("get_blocked_hosts")
     query_limit_time_parser = subparsers.add_parser("query_limit_time")
+    set_block_flag_parser = subparsers.add_parser("set_block_flag")
+    set_block_flag_parser.add_argument("--mac", required=True)
+    set_block_flag_parser.add_argument("--is_blocked", required=False, default=True)
 
     args = parser.parse_args()
 
     result = apply_action(**vars(args))
     import pprint
     pprint.pprint(result)
+
+
+if __name__ == "__main__":
+    main()

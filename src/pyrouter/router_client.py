@@ -240,7 +240,8 @@ class RouterClient(object):
 
     def get_host_info_by_mac(self, mac):
         mac = self.replace_mac_sep(mac)
-        return self.get_all_host_info_dict()[mac]
+        all_hosts_info_dict = self.get_all_host_info_dict()
+        return all_hosts_info_dict[mac]
 
 
 if __name__ == '__main__':

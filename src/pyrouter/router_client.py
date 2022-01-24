@@ -1,12 +1,12 @@
-import requests
 import json
 from datetime import datetime
-
 from urllib.request import urlopen
 
-from .utils import unquote_dict, quote_dict
+import requests
+
 from .encrypt import encrypt
 from .exceptions import RouterNotCompatible, ValidationError
+from .utils import unquote_dict, quote_dict
 
 
 class RouterClient(object):
@@ -77,6 +77,24 @@ class RouterClient(object):
         payload = {"hosts_info": {"table": "host_info"}, "method": "get"}
         return self._post(payload)
 
+    def get_online_hosts_info(self):
+        payload = {"hosts_info":
+                       {"table": "online_host"},
+                   "network": {"name": "iface_mac"},
+                   "method": "get"}
+        return self._post(payload)
+
+    def get_online_hosts_info_dict(self):
+        online_hosts_info = self.get_online_hosts_info()
+
+        online_hosts_info_dict = dict()
+
+        for d in online_hosts_info["hosts_info"]["online_host"]:
+            device_info = list(d.values())[0]
+            online_hosts_info_dict[device_info["mac"]] = device_info
+
+        return online_hosts_info_dict
+
     def reboot(self):
         payload = {"system": {"reboot": None}, "method": "do"}
         return self._post(payload)
@@ -85,47 +103,22 @@ class RouterClient(object):
         payload = {"hosts_info": {"table": "blocked_host"}, "method": "get"}
         return self._post(payload)
 
-    def set_block_flag(self, mac, is_blocked: bool):
-        assert isinstance(is_blocked, bool)
-        is_blocked = "1" if is_blocked else "0"
-        payload = {
-            "hosts_info": {
-                "set_block_flag": {
-                    "mac": mac,
-                    "is_blocked": is_blocked
-                }},
-            "method": "do"}
-        return self._post(payload)
+    def get_blocked_hosts_info_dict(self):
+        blocked_hosts_info = self.get_online_hosts_info()
 
-    # todo: is_block is not set here
+        blocked_hosts_info_dict = dict()
+
+        for d in blocked_hosts_info["hosts_info"]["blocked_host"]:
+            device_info = list(d.values())[0]
+            blocked_hosts_info_dict[device_info["mac"]] = device_info
+
+        return blocked_hosts_info_dict
+
+    def set_block_flag(self, mac, is_blocked):
+        self.set_host_info_partial(mac, is_blocked=is_blocked)
+
     def set_flux_limit(self, mac, down_limit, up_limit):
-        """
-        for example:
-            data = {
-            "mac": "22-28-6D-95-FD-C9",
-            # "is_blocked": "0",
-            # "name": "myiPad",
-            "down_limit": "0",
-            "up_limit": "0"}
-
-        :param mac:
-        :param down_limit: 0 means no limit
-        :param up_limit: 0 means no limit
-        :return:
-        """
-
-        # todo: this will force is_blocked to 0,
-        # maybe we should fetch the exist rule?
-        down_limit = str(down_limit)
-        up_limit = str(up_limit)
-        payload = {
-            "hosts_info": {
-                "set_flux_limit": {
-                    "mac": mac,
-                    "down_limit": down_limit,
-                    "up_limit": up_limit}},
-            "method": "do"}
-        return self._post(payload)
+        self.set_host_info_partial(mac, down_limit=down_limit, up_limit=up_limit)
 
     def add_limit_time(
             self, limit_time_name, desc_name, start_time, end_time,
@@ -148,7 +141,8 @@ class RouterClient(object):
                 raise ValidationError(f"{v} should be 0 or 1")
 
         payload = {"hosts_info": {
-            "table": "limit_time", "name": limit_time_name,
+            "table": "limit_time",
+            "name": limit_time_name,
             "para": {
                 "name": desc_name,
                 "mon": mon,
@@ -189,30 +183,54 @@ class RouterClient(object):
         payload = {"hosts_info": {"table": "forbid_domain"}, "method": "delete"}
         return self._post(payload)
 
-    def set_host_info(self, mac, **kwargs):
-        """
-        Apply rules to the host
-        :param mac:
-        :param kwargs: allowed kwargs: "is_blocked", "down_limit", "up_limit",
-         "limit_time", "name".
-        :return:
-        """
-        # if not specified in kwargs, will used the existing rules
-
-        if not kwargs:
-            return
-
-        for k, v in kwargs.items():
-            if k not in [
-                    "is_blocked", "down_limit", "up_limit", "limit_time", "name"]:
-                raise ValidationError("Unknown key {k}")
-
-        info_dict = {"mac": mac}
-        info_dict.update(**kwargs)
+    def set_host_info(self, mac, name, is_blocked, down_limit, up_limit, forbid_domain, limit_time):
+        info_dict = {
+            "mac": mac,
+            "name": name,
+            "is_blocked": is_blocked,
+            "down_limit": down_limit,
+            "up_limit": up_limit,
+            "forbid_domain": forbid_domain,
+            "limit_time": limit_time
+        }
 
         payload = {
             "hosts_info": {"set_host_info": info_dict}, "method": "do"}
         return self._post(payload)
+
+    def set_host_info_partial(self, mac, **kwargs):
+        if not kwargs:
+            return {}
+
+        host_info = self.get_host_info_by_mac(mac)
+        allowed_keys = ["mac", "name", "is_blocked", "down_limit",
+                        "up_limit", "forbid_domain", "limit_time"]
+        for k in host_info:
+            if k not in allowed_keys:
+                host_info.pop(k)
+
+        host_info.update(**kwargs)
+        return self.set_host_info(**kwargs)
+
+    def set_host_limit_time(self, mac, limit_time):
+        return self.set_host_info_partial(mac, limit_time=limit_time)
+
+    def set_host_forbid_domain(self, mac, forbid_domain):
+        return self.set_host_info_partial(mac, forbid_domain=forbid_domain)
+
+    def get_all_host_info_dict(self):
+        all_host_info = self.get_all_hosts_info()
+
+        all_host_info_dict = dict()
+
+        for d in all_host_info["hosts_info"]["host_info"]:
+            device_info = list(d.values())[0]
+            all_host_info_dict[device_info["mac"]] = device_info
+
+        return all_host_info_dict
+
+    def get_host_info_by_mac(self, mac):
+        return self.get_all_host_info_dict()[mac]
 
 
 if __name__ == '__main__':

@@ -184,6 +184,12 @@ class RouterClient(object):
         return self._post(payload)
 
     def set_host_info(self, mac, name, is_blocked, down_limit, up_limit, forbid_domain, limit_time):
+
+        mac = str(mac)
+
+        if isinstance(is_blocked, bool):
+            is_blocked = "1" if is_blocked else "0"
+
         info_dict = {
             "mac": mac,
             "name": name,
@@ -201,6 +207,8 @@ class RouterClient(object):
     def set_host_info_partial(self, mac, **kwargs):
         if not kwargs:
             return {}
+
+        mac = str(mac)
 
         host_info = self.get_host_info_by_mac(mac)
         allowed_keys = ["mac", "name", "is_blocked", "down_limit",
@@ -230,6 +238,7 @@ class RouterClient(object):
         return all_host_info_dict
 
     def get_host_info_by_mac(self, mac):
+        mac = str(mac)
         return self.get_all_host_info_dict()[mac]
 
 

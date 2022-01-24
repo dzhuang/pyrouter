@@ -213,9 +213,10 @@ class RouterClient(object):
         host_info = self.get_host_info_by_mac(mac)
         allowed_keys = ["mac", "name", "is_blocked", "down_limit",
                         "up_limit", "forbid_domain", "limit_time"]
-        for k in host_info:
-            if k not in allowed_keys:
-                host_info.pop(k)
+
+        keys_to_remove = [k for k in host_info if k not in allowed_keys]
+        for k in keys_to_remove:
+            host_info.pop(k)
 
         host_info.update(**kwargs)
         return self.set_host_info(**kwargs)

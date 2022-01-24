@@ -49,13 +49,16 @@ class RouterClient(object):
     def _post_url(self):
         return f'{self.url}/stok={self.stok}/ds'
 
+    @staticmethod
+    def replace_mac_sep(mac):
+        return str(mac).replace(":", "-")
+
     def _post(self, payload):
         response = requests.post(
             self._post_url, json=quote_dict(payload), headers=self.headers,
             timeout=self._timeout)
         if response.status_code == 200:
-            result = response.json()
-            return unquote_dict(result)
+            return unquote_dict(response.json())
         return response
 
     def authenticate(self):
@@ -185,7 +188,7 @@ class RouterClient(object):
 
     def set_host_info(self, mac, name, is_blocked, down_limit, up_limit, forbid_domain, limit_time):
 
-        mac = str(mac)
+        mac = self.replace_mac_sep(mac)
 
         if isinstance(is_blocked, bool):
             is_blocked = "1" if is_blocked else "0"
@@ -207,8 +210,6 @@ class RouterClient(object):
     def set_host_info_partial(self, mac, **kwargs):
         if not kwargs:
             return {}
-
-        mac = str(mac)
 
         host_info = self.get_host_info_by_mac(mac)
         name = kwargs.pop("name", host_info["hostname"])
@@ -238,7 +239,7 @@ class RouterClient(object):
         return all_host_info_dict
 
     def get_host_info_by_mac(self, mac):
-        mac = str(mac)
+        mac = self.replace_mac_sep(mac)
         return self.get_all_host_info_dict()[mac]
 
 

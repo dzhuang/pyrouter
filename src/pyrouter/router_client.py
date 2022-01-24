@@ -211,12 +211,12 @@ class RouterClient(object):
         mac = str(mac)
 
         host_info = self.get_host_info_by_mac(mac)
-        name = host_info["hostname"]
-        is_blocked = host_info["blocked"]
-        down_limit = host_info["down_limit"]
-        up_limit = host_info["up_limit"]
-        forbid_domain = host_info.get("forbid_domain", "")
-        limit_time = host_info.get("limit_time", "")
+        name = kwargs.pop("name", host_info["hostname"])
+        is_blocked = kwargs.pop("is_blocked", host_info["blocked"])
+        down_limit = kwargs.pop("down_limit", host_info["down_limit"])
+        up_limit = kwargs.pop("up_limit", host_info["up_limit"])
+        forbid_domain = kwargs.pop("forbid_domain", host_info.get("forbid_domain", ""))
+        limit_time = kwargs.pop("limit_time", host_info.get("limit_time", ""))
         return self.set_host_info(mac, name, is_blocked, down_limit,
                                   up_limit, forbid_domain, limit_time)
 

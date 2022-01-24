@@ -211,15 +211,14 @@ class RouterClient(object):
         mac = str(mac)
 
         host_info = self.get_host_info_by_mac(mac)
-        allowed_keys = ["mac", "name", "is_blocked", "down_limit",
-                        "up_limit", "forbid_domain", "limit_time"]
-
-        keys_to_remove = [k for k in host_info if k not in allowed_keys]
-        for k in keys_to_remove:
-            host_info.pop(k)
-
-        host_info.update(**kwargs)
-        return self.set_host_info(**kwargs)
+        name = host_info["hostname"]
+        is_blocked = host_info["blocked"]
+        down_limit = host_info["down_limit"]
+        up_limit = host_info["up_limit"]
+        forbid_domain = host_info.get("forbid_domain", "")
+        limit_time = host_info.get("limit_time", "")
+        return self.set_host_info(mac, name, is_blocked, down_limit,
+                                  up_limit, forbid_domain, limit_time)
 
     def set_host_limit_time(self, mac, limit_time):
         return self.set_host_info_partial(mac, limit_time=limit_time)

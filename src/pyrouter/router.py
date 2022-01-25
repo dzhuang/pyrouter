@@ -16,6 +16,7 @@ def main():
     get_all_hosts_info_parser = subparsers.add_parser("get_all_hosts_info")
     get_blocked_hosts_parser = subparsers.add_parser("get_blocked_hosts")
     query_limit_time_parser = subparsers.add_parser("query_limit_time")
+    get_online_hosts_info_parser = subparsers.add_parser("get_online_hosts_info")
     set_block_flag_parser = subparsers.add_parser("set_block_flag")
     set_block_flag_parser.add_argument("--mac", required=True)
     set_block_flag_parser.add_argument("--is_blocked", required=False, default=True)

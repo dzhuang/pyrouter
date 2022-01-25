@@ -9,6 +9,10 @@ from .exceptions import RouterNotCompatible, ValidationError
 from .utils import unquote_dict, quote_dict
 
 
+class DeviceNotFound(Exception):
+    pass
+
+
 class RouterClient(object):
     headers = {'Content-Type': 'application/json; charset=UTF-8'}
 
@@ -186,7 +190,8 @@ class RouterClient(object):
         payload = {"hosts_info": {"table": "forbid_domain"}, "method": "delete"}
         return self._post(payload)
 
-    def set_host_info(self, mac, name, is_blocked, down_limit, up_limit, forbid_domain, limit_time):
+    def set_host_info(self, mac, name, is_blocked, down_limit, up_limit,
+                      forbid_domain, limit_time):
 
         mac = self.replace_mac_sep(mac)
 
@@ -208,15 +213,27 @@ class RouterClient(object):
         return self._post(payload)
 
     def set_host_info_partial(self, mac, **kwargs):
+        """
+        Update host info partially. This method can be applied only when the info
+        of the device is accessible by get_all_hosts_info (the device is active in
+        a short while or it is online).
+        """
         if not kwargs:
             return {}
 
-        host_info = self.get_host_info_by_mac(mac)
+        try:
+            host_info = self.get_host_info_by_mac(mac)
+        except DeviceNotFound as e:
+            raise DeviceNotFound(
+                "%s. You need to use 'set_host_info' instead or let the device "
+                "accessible from the router." % (str(e), )
+            )
         name = kwargs.pop("name", host_info["hostname"])
         is_blocked = kwargs.pop("is_blocked", host_info["blocked"])
         down_limit = kwargs.pop("down_limit", host_info["down_limit"])
         up_limit = kwargs.pop("up_limit", host_info["up_limit"])
-        forbid_domain = kwargs.pop("forbid_domain", host_info.get("forbid_domain", ""))
+        forbid_domain = kwargs.pop(
+            "forbid_domain", host_info.get("forbid_domain", ""))
         limit_time = kwargs.pop("limit_time", host_info.get("limit_time", ""))
         return self.set_host_info(mac, name, is_blocked, down_limit,
                                   up_limit, forbid_domain, limit_time)
@@ -241,7 +258,12 @@ class RouterClient(object):
     def get_host_info_by_mac(self, mac):
         mac = self.replace_mac_sep(mac)
         all_hosts_info_dict = self.get_all_host_info_dict()
-        return all_hosts_info_dict[mac]
+        try:
+            return all_hosts_info_dict[mac]
+        except KeyError:
+            raise DeviceNotFound(
+                "device with mac '%s' not found, maybe "
+                "it has been offline for a while." % mac)
 
 
 if __name__ == '__main__':

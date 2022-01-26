@@ -121,9 +121,10 @@ class RouterClient(object):
 
         return blocked_hosts_info_dict
 
-    def set_block_flag(self, mac, is_blocked: bool):
-        assert isinstance(is_blocked, bool)
-        is_blocked = "1" if is_blocked else "0"
+    def set_block_flag(self, mac, is_blocked):
+        if isinstance(is_blocked, bool):
+            is_blocked = "1" if is_blocked else "0"
+        assert is_blocked in ["0", "1"]
         payload = {
             "hosts_info": {
                 "set_block_flag": {
@@ -227,38 +228,6 @@ class RouterClient(object):
         payload = {
             "hosts_info": {"set_host_info": info_dict}, "method": "do"}
         return self._post(payload)
-
-    def set_host_info_partial(self, mac, **kwargs):
-        """
-        Update host info partially. This method can be applied only when the info
-        of the device is accessible by get_all_hosts_info (the device is active in
-        a short while or it is online).
-        """
-        if not kwargs:
-            return {}
-
-        try:
-            host_info = self.get_host_info_by_mac(mac)
-        except DeviceNotFound as e:
-            raise DeviceNotFound(
-                "%s. You need to use 'set_host_info' instead or let the device "
-                "accessible from the router." % (str(e), )
-            )
-        name = kwargs.pop("name", host_info["hostname"])
-        is_blocked = kwargs.pop("is_blocked", host_info["blocked"])
-        down_limit = kwargs.pop("down_limit", host_info["down_limit"])
-        up_limit = kwargs.pop("up_limit", host_info["up_limit"])
-        forbid_domain = kwargs.pop(
-            "forbid_domain", host_info.get("forbid_domain", ""))
-        limit_time = kwargs.pop("limit_time", host_info.get("limit_time", ""))
-        return self.set_host_info(mac, name, is_blocked, down_limit,
-                                  up_limit, forbid_domain, limit_time)
-
-    def set_host_limit_time(self, mac, limit_time):
-        return self.set_host_info_partial(mac, limit_time=limit_time)
-
-    def set_host_forbid_domain(self, mac, forbid_domain):
-        return self.set_host_info_partial(mac, forbid_domain=forbid_domain)
 
     def get_all_host_info_dict(self):
         all_host_info = self.get_all_hosts_info()

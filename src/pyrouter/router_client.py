@@ -85,8 +85,8 @@ class RouterClient(object):
         return self._post(payload)
 
     def get_online_hosts_info(self):
-        payload = {"hosts_info":
-                       {"table": "online_host"},
+        # this result removed blocked hosts from those of get_all_hosts_info
+        payload = {"hosts_info": {"table": "online_host"},
                    "network": {"name": "iface_mac"},
                    "method": "get"}
         return self._post(payload)
@@ -121,11 +121,27 @@ class RouterClient(object):
 
         return blocked_hosts_info_dict
 
-    def set_block_flag(self, mac, is_blocked):
-        self.set_host_info_partial(mac, is_blocked=is_blocked)
+    def set_block_flag(self, mac, is_blocked: bool):
+        assert isinstance(is_blocked, bool)
+        is_blocked = "1" if is_blocked else "0"
+        payload = {
+            "hosts_info": {
+                "set_block_flag": {
+                    "mac": mac,
+                    "is_blocked": is_blocked
+                }},
+            "method": "do"}
+        return self._post(payload)
 
     def set_flux_limit(self, mac, down_limit, up_limit):
-        self.set_host_info_partial(mac, down_limit=down_limit, up_limit=up_limit)
+        payload = {
+            "hosts_info": {
+                "set_flux_limit": {
+                    "mac": mac,
+                    "down_limit": down_limit,
+                    "up_limit": up_limit}},
+            "method": "do"}
+        return self._post(payload)
 
     def add_limit_time(
             self, limit_time_name, desc_name, start_time, end_time,

@@ -91,12 +91,23 @@ class RouterClient(object):
                 f"Encrypt Error: {json.dumps(response.json())}"
             )
 
+    def get_all_info(self):
+        # Get hosts_info, limit_time, forbid_domain
+        payload = {
+            "hosts_info": {
+                "table": ["host_info", "limit_time", "forbid_domain"]},
+            "method": "get"}
+        return self._post(payload)
+
     def get_all_hosts_info(self):
-        payload = {"hosts_info": {"table": "host_info"}, "method": "get"}
+        payload = {
+            "hosts_info": {
+                "table": "host_info"},
+            "method": "get"}
         return self._post(payload)
 
     def get_online_hosts_info(self):
-        # this result removed blocked hosts from those of get_all_hosts_info
+        # This result removed blocked hosts from those of get_all_hosts_info
         payload = {"hosts_info": {"table": "online_host"},
                    "network": {"name": "iface_mac"},
                    "method": "get"}

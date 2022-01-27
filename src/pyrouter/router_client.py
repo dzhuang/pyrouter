@@ -17,7 +17,6 @@ class RouterClient(object):
     headers = {'Content-Type': 'application/json; charset=UTF-8'}
 
     def __init__(self, url, password, timeout=5):
-        self.validate_url(url)
         self.url = url
         self._password = password
 

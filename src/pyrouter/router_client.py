@@ -3,6 +3,7 @@ from datetime import datetime
 from urllib.request import urlopen
 
 import requests
+from requests.adapters import HTTPAdapter
 
 from .encrypt import encrypt
 from .exceptions import RouterNotCompatible, ValidationError
@@ -16,27 +17,38 @@ class DeviceNotFound(Exception):
 class RouterClient(object):
     headers = {'Content-Type': 'application/json; charset=UTF-8'}
 
-    def __init__(self, url, password, timeout=5):
+    def __init__(self, url, password, timeout=5, n_retries=10):
         self.url = url
         self._password = password
 
         self._stok = None
         self._timeout = timeout
+        self._n_retries = n_retries
+        self._session = None
+
+    @property
+    def session(self):
+        # Ref: https://stackoverflow.com/a/35504626/3437454
+        if self._session is None:
+            s = requests.Session()
+            s.mount(self.url, HTTPAdapter(max_retries=self._n_retries))
+            self._session = s
+        return self._session
 
     @classmethod
     def validate_url(cls, url, timeout=5):
         urlopen(url, timeout=timeout)
 
-    @classmethod
-    def test_compatible(cls, url, timeout=5):
+    def test_compatible(self, timeout=5):
         payload = {
             "method": "do",
             "login": {"password": ""}
         }
-        response = requests.post(url, json=payload, headers=cls.headers,
-                                 timeout=timeout)
+        response = self._session.post(
+            self.url, json=payload, headers=self.headers,
+            timeout=timeout)
         try:
-            result = response.json()
+            response.json()
             # todo: check public key
         except Exception as e:
             raise RouterNotCompatible()
@@ -57,7 +69,7 @@ class RouterClient(object):
         return str(mac).replace(":", "-")
 
     def _post(self, payload):
-        response = requests.post(
+        response = self._session.post(
             self._post_url, json=quote_dict(payload), headers=self.headers,
             timeout=self._timeout)
         if response.status_code == 200:
@@ -69,7 +81,7 @@ class RouterClient(object):
             "method": "do",
             "login": {"password": encrypt(self._password)}
         }
-        response = requests.post(
+        response = self._session.post(
             self.url, json=payload, headers=self.headers,
             timeout=self._timeout)
         try:

@@ -13,6 +13,7 @@ def main():
     parser.add_argument("--url", required=True)
     parser.add_argument("-p", "--password", required=True)
     subparsers = parser.add_subparsers(dest="action")
+    get_all_info_parser = subparsers.add_parser("get_all_info")
     get_all_hosts_info_parser = subparsers.add_parser("get_all_hosts_info")
     get_blocked_hosts_parser = subparsers.add_parser("get_blocked_hosts")
     query_limit_time_parser = subparsers.add_parser("query_limit_time")

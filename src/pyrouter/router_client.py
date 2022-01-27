@@ -44,7 +44,7 @@ class RouterClient(object):
             "method": "do",
             "login": {"password": ""}
         }
-        response = self._session.post(
+        response = self.session.post(
             self.url, json=payload, headers=self.headers,
             timeout=timeout)
         try:
@@ -69,7 +69,7 @@ class RouterClient(object):
         return str(mac).replace(":", "-")
 
     def _post(self, payload):
-        response = self._session.post(
+        response = self.session.post(
             self._post_url, json=quote_dict(payload), headers=self.headers,
             timeout=self._timeout)
         if response.status_code == 200:
@@ -81,7 +81,7 @@ class RouterClient(object):
             "method": "do",
             "login": {"password": encrypt(self._password)}
         }
-        response = self._session.post(
+        response = self.session.post(
             self.url, json=payload, headers=self.headers,
             timeout=self._timeout)
         try:

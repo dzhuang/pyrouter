@@ -14,6 +14,14 @@ class DeviceNotFound(Exception):
     pass
 
 
+class RequestError(Exception):
+    pass
+
+
+class AuthenticationError(Exception):
+    pass
+
+
 class RouterClient(object):
     headers = {'Content-Type': 'application/json; charset=UTF-8'}
 
@@ -68,7 +76,7 @@ class RouterClient(object):
     def replace_mac_sep(mac):
         return str(mac).replace(":", "-")
 
-    def _post(self, payload, will_retry_upon_401=True):
+    def _post(self, payload, will_retry_upon_401=True, raise_on_error=False):
         response = self.session.post(
             self._post_url, json=quote_dict(payload), headers=self.headers,
             timeout=self._timeout)
@@ -77,6 +85,10 @@ class RouterClient(object):
         elif response.status_code == 401 and will_retry_upon_401:
             self.authenticate()
             self._post(payload, will_retry_upon_401=False)
+
+        if raise_on_error:
+            return RequestError(response.text)
+
         return response
 
     def authenticate(self):
@@ -87,12 +99,26 @@ class RouterClient(object):
         response = self.session.post(
             self.url, json=payload, headers=self.headers,
             timeout=self._timeout)
-        try:
+
+        if response.status_code == 200:
             self._stok = response.json()['stok']
-        except KeyError:
-            raise RouterNotCompatible(
-                f"Encrypt Error: {json.dumps(response.json())}"
-            )
+            return
+
+        if response.status_code == 401:
+            try:
+                rsa_key = response.json().get("data", {}).get("key", None)
+            except Exception as e:
+                error_msg = f"{type(e).__name__}: {str(e)}"
+            else:
+                if (rsa_key is None
+                        or not rsa_key.startswith(
+                            "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCoVB")):
+                    error_msg = "Your router is not compatible with this API."
+                else:
+                    raise AuthenticationError("Your password is not correct.")
+
+            assert error_msg is not None
+            raise RouterNotCompatible(error_msg)
 
     def get_all_info(self):
         # Get hosts_info, limit_time, forbid_domain
@@ -100,7 +126,7 @@ class RouterClient(object):
             "hosts_info": {
                 "table": ["host_info", "limit_time", "forbid_domain"]},
             "method": "get"}
-        return self._post(payload)
+        return self._post(payload, raise_on_error=True)
 
     def get_all_hosts_info(self):
         payload = {

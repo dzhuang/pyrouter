@@ -87,7 +87,7 @@ class RouterClient(object):
             self._post(payload, will_retry_upon_401=False)
 
         if raise_on_error:
-            return RequestError(response.text)
+            raise RequestError(response.text)
 
         return response
 

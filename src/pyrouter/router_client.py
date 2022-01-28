@@ -68,12 +68,15 @@ class RouterClient(object):
     def replace_mac_sep(mac):
         return str(mac).replace(":", "-")
 
-    def _post(self, payload):
+    def _post(self, payload, will_retry_upon_401=True):
         response = self.session.post(
             self._post_url, json=quote_dict(payload), headers=self.headers,
             timeout=self._timeout)
         if response.status_code == 200:
             return unquote_dict(response.json())
+        elif response.status_code == 401 and will_retry_upon_401:
+            self.authenticate()
+            self._post(payload, will_retry_upon_401=False)
         return response
 
     def authenticate(self):

@@ -254,16 +254,39 @@ class RouterClient(object):
             "hosts_info": {"set_host_info": info_dict}, "method": "do"}
         return self._post(payload)
 
-    def get_all_host_info_dict(self):
-        all_host_info = self.get_all_hosts_info()
+    def get_info_dicts(self):
+        return self.get_all_info()["hosts_info"]
+
+    def get_restructured_info_dicts(self):
+        info_dicts = self.get_info_dicts()
 
         all_host_info_dict = dict()
-
-        for d in all_host_info["hosts_info"]["host_info"]:
+        for d in info_dicts["host_info"]:
             device_info = list(d.values())[0]
             all_host_info_dict[device_info["mac"]] = device_info
 
-        return all_host_info_dict
+        all_limit_time_info_dict = dict()
+        for d in info_dicts["limit_time"]:
+            k, v = list(d.items())[0]
+            all_limit_time_info_dict[k] = v
+
+        all_forbid_domain_info_dict = dict()
+        for d in info_dicts["forbid_domain"]:
+            k, v = list(d.items())[0]
+            all_forbid_domain_info_dict[k] = v
+
+        return {"forbid_domain": all_forbid_domain_info_dict,
+                "limit_time": all_limit_time_info_dict,
+                "host_info": all_host_info_dict}
+
+    def get_all_host_info_dict(self):
+        return self.get_restructured_info_dicts()["host_info"]
+
+    def get_all_forbid_domain_info_dict(self):
+        return self.get_restructured_info_dicts()["forbid_domain"]
+
+    def get_all_limit_time_info_dict(self):
+        return self.get_restructured_info_dicts()["limit_time"]
 
     def get_host_info_by_mac(self, mac):
         mac = self.replace_mac_sep(mac)

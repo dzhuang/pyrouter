@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 from urllib.request import urlopen
 
@@ -81,7 +80,9 @@ class RouterClient(object):
             self._post_url, json=quote_dict(payload), headers=self.headers,
             timeout=self._timeout)
         if response.status_code == 200:
-            return unquote_dict(response.json())
+            resp_json = response.json()
+            if resp_json["error_code"] == 0:
+                return unquote_dict(resp_json)
         elif response.status_code == 401 and will_retry_upon_401:
             self.authenticate()
             self._post(payload, will_retry_upon_401=False)
@@ -212,6 +213,8 @@ class RouterClient(object):
                 raise ValidationError(msg)
 
         for v in [mon, tue, wed, thu, fri, sat, sun]:
+            if isinstance(v, bool):
+                v = 1 if v else 0
             if str(v) not in ["0", "1"]:
                 raise ValidationError(f"{v} should be 0 or 1")
 

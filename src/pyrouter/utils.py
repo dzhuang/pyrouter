@@ -22,6 +22,8 @@ def quote_dict(d: dict) -> dict:
     for k, v in d.items():
         if isinstance(v, dict):
             v = quote_dict(v)
+        elif isinstance(v, bool):
+            v = "1" if v else "0"
         elif isinstance(v, str):
             v = quote(v)
         elif isinstance(v, list):

@@ -75,7 +75,7 @@ class RouterClient(object):
     def replace_mac_sep(mac):
         return str(mac).replace(":", "-")
 
-    def _post(self, payload, will_retry_upon_401=True, raise_on_error=False):
+    def _post(self, payload, will_retry_upon_401=True, raise_on_error=True):
         response = self.session.post(
             self._post_url, json=quote_dict(payload), headers=self.headers,
             timeout=self._timeout)
@@ -214,7 +214,7 @@ class RouterClient(object):
 
         for v in [mon, tue, wed, thu, fri, sat, sun]:
             if isinstance(v, bool):
-                v = 1 if v else 0
+                continue
             if str(v) not in ["0", "1"]:
                 raise ValidationError(f"{v} should be 0 or 1")
 

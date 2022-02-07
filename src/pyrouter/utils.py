@@ -1,4 +1,4 @@
-from urllib.parse import unquote, quote
+from urllib.parse import quote, unquote
 
 
 def unquote_dict(d: dict) -> dict:

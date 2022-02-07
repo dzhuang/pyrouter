@@ -1,5 +1,6 @@
-from .router_client import RouterClient
 import argparse
+
+from .router_client import RouterClient
 
 
 def apply_action(url, password, action, **kwargs):
@@ -13,11 +14,11 @@ def main():
     parser.add_argument("--url", required=True)
     parser.add_argument("-p", "--password", required=True)
     subparsers = parser.add_subparsers(dest="action")
-    get_all_info_parser = subparsers.add_parser("get_all_info")
-    get_all_hosts_info_parser = subparsers.add_parser("get_all_hosts_info")
-    get_blocked_hosts_parser = subparsers.add_parser("get_blocked_hosts")
-    query_limit_time_parser = subparsers.add_parser("query_limit_time")
-    get_online_hosts_info_parser = subparsers.add_parser("get_online_hosts_info")
+    subparsers.add_parser("get_all_info")
+    subparsers.add_parser("get_all_hosts_info")
+    subparsers.add_parser("get_blocked_hosts")
+    subparsers.add_parser("query_limit_time")
+    subparsers.add_parser("get_online_hosts_info")
     subparsers.add_parser("get_restructured_info_dicts")
     set_block_flag_parser = subparsers.add_parser("set_block_flag")
     set_block_flag_parser.add_argument("--mac", required=True)

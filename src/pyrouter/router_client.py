@@ -5,25 +5,10 @@ import requests
 from requests.adapters import HTTPAdapter
 
 from .encrypt import encrypt
-from .exceptions import RouterNotCompatible, ValidationError
-from .utils import unquote_dict, quote_dict
 from .error_code import API_ERROR_CODE
-
-
-class DeviceNotFound(Exception):
-    pass
-
-
-class RequestError(Exception):
-    pass
-
-
-class AuthenticationError(Exception):
-    pass
-
-
-class RouterAPIError(Exception):
-    pass
+from .exceptions import (AuthenticationError, DeviceNotFound, RequestError,
+                         RouterAPIError, RouterNotCompatible, ValidationError)
+from .utils import quote_dict, unquote_dict
 
 
 class RouterClient(object):
@@ -62,7 +47,7 @@ class RouterClient(object):
         try:
             response.json()
             # todo: check public key
-        except Exception as e:
+        except Exception:
             raise RouterNotCompatible()
 
     @property

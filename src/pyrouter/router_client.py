@@ -7,6 +7,7 @@ from requests.adapters import HTTPAdapter
 from .encrypt import encrypt
 from .exceptions import RouterNotCompatible, ValidationError
 from .utils import unquote_dict, quote_dict
+from .error_code import API_ERROR_CODE
 
 
 class DeviceNotFound(Exception):
@@ -18,6 +19,10 @@ class RequestError(Exception):
 
 
 class AuthenticationError(Exception):
+    pass
+
+
+class RouterAPIError(Exception):
     pass
 
 
@@ -85,10 +90,16 @@ class RouterClient(object):
                 return unquote_dict(resp_json)
         elif response.status_code == 401 and will_retry_upon_401:
             self.authenticate()
-            self._post(payload, will_retry_upon_401=False)
+            self._post(payload, will_retry_upon_401=False,
+                       raise_on_error=raise_on_error)
 
         if raise_on_error:
-            raise RequestError(response.text)
+            try:
+                error_msg = API_ERROR_CODE[response.json()["error_code"]]
+            except Exception:
+                raise RequestError(response.text)
+            else:
+                raise RouterAPIError(error_msg)
 
         return response
 

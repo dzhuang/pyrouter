@@ -75,8 +75,9 @@ class RouterClient(object):
                 return unquote_dict(resp_json)
         elif response.status_code == 401 and will_retry_upon_401:
             self.authenticate()
-            self._post(payload, will_retry_upon_401=False,
-                       raise_on_error=raise_on_error)
+            return self._post(
+                payload, will_retry_upon_401=False,
+                raise_on_error=raise_on_error)
 
         if raise_on_error:
             try:
